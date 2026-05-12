@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { dataApi } from '../api/client';
 import type { NodeStatus, StorageInfo, VmInfo } from '../types/models';
 
@@ -16,31 +16,56 @@ interface UseDashboardData {
   refresh: () => Promise<void>;
 }
 
+async function fetchDashboard(): Promise<DashboardData> {
+  const [nodes, vms, lxcs, storage] = await Promise.all([
+    dataApi.getNodes(),
+    dataApi.getVms(),
+    dataApi.getLxcs(),
+    dataApi.getStorage(),
+  ]);
+  return { nodes, vms, lxcs, storage };
+}
+
 export function useDashboardData(): UseDashboardData {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAll = async () => {
-    try {
-      const [nodes, vms, lxcs, storage] = await Promise.all([
-        dataApi.getNodes(),
-        dataApi.getVms(),
-        dataApi.getLxcs(),
-        dataApi.getStorage(),
-      ]);
-      setData({ nodes, vms, lxcs, storage });
-      setError(null);
-    } catch (err) {
-      setError('Failed to load dashboard data.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchAll();
+    let cancelled = false;
+
+    fetchDashboard()
+      .then((result) => {
+        if (!cancelled) {
+          setData(result);
+          setError(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError('Failed to load dashboard data.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  return { data, isLoading, error, refresh: fetchAll };
+  const refresh = useCallback(async () => {
+    try {
+      const result = await fetchDashboard();
+      setData(result);
+      setError(null);
+    } catch {
+      setError('Failed to load dashboard data.');
+    }
+  }, []);
+
+  return { data, isLoading, error, refresh };
 }
