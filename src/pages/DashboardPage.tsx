@@ -3,10 +3,17 @@ import { useDashboardData } from '../hooks/useDashboardData';
 import { NodeCard } from '../components/NodeCard';
 import { VmCard } from '../components/VmCard';
 import { StorageCard } from '../components/StorageCard';
+import { useDashboardHub } from '../hooks/useDashboardHub';
 
 export function DashboardPage() {
   const { logout } = useAuth();
   const { data, isLoading, error, refresh } = useDashboardData();
+  useDashboardHub({
+  onNodesUpdated: refresh,
+  onVmsUpdated: refresh,
+  onLxcsUpdated: refresh,
+  onStorageUpdated: refresh,
+});
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
