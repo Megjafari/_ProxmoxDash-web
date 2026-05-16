@@ -17,6 +17,7 @@ export interface VmInfo {
   cpuCount: number;
   type: string;
   node: string;
+  ipAddress: string | null;
 }
 
 export interface StorageInfo {
