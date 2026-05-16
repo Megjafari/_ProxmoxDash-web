@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { VmInfo } from '../types/models';
 import { formatPercent } from '../lib/format';
 import { actionApi } from '../api/client';
@@ -16,6 +17,7 @@ export function VmCard({ vm }: Props) {
 
   const [actionState, setActionState] = useState<ActionState>('idle');
   const [actionError, setActionError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const runAction = async (state: ActionState, call: () => Promise<unknown>) => {
     setActionState(state);
@@ -44,7 +46,19 @@ export function VmCard({ vm }: Props) {
       isVm ? actionApi.restartVm(vm.node, vm.vmId) : actionApi.restartLxc(vm.node, vm.vmId),
     );
 
+  const handleTerminal = () => {
+    if (vm.ipAddress) {
+      navigate(`/terminal/${vm.ipAddress}`);
+    }
+  };
+
   const busy = actionState !== 'idle';
+  const terminalDisabled = !vm.ipAddress || !isRunning;
+  const terminalTitle = !vm.ipAddress
+    ? 'No IP configured for this VM'
+    : !isRunning
+      ? 'VM must be running'
+      : 'Open terminal';
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
@@ -98,6 +112,14 @@ export function VmCard({ vm }: Props) {
           className="flex-1 text-xs py-1.5 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {actionState === 'restarting' ? '...' : 'Restart'}
+        </button>
+        <button
+          onClick={handleTerminal}
+          disabled={terminalDisabled}
+          title={terminalTitle}
+          className="flex-1 text-xs py-1.5 rounded bg-sky-900/40 text-sky-300 hover:bg-sky-900/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          Terminal
         </button>
       </div>
 
